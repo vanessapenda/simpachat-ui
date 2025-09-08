@@ -1,0 +1,165 @@
+<div class="chat-container">
+  <div class="card shadow">
+    <!-- En-tête -->
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <img src="assets/logo.png" alt="SimpaChat" class="chat-logo" />
+        <span class="chat-title">SimpaChat</span>
+      </div>
+      <button
+        class="history-btn"
+        (click)="toggleHistory()"
+        title="Historique"
+        aria-label="Consulter l'historique"
+      >
+        <i class="bi bi-clock-history"></i>
+      </button>
+    </div>
+
+    <!-- Panneau Vos Chats -->
+    <div
+      class="history-backdrop"
+      *ngIf="showHistory"
+      (click)="toggleHistory()"
+    ></div>
+    <div
+      class="history-panel"
+      *ngIf="showHistory"
+      (click)="$event.stopPropagation()"
+    >
+      <div
+        class="d-flex align-items-center justify-content-between history-header"
+      >
+        <div class="fw-semibold">Historiques</div>
+        <button
+          class="icon-btn header-btn"
+          (click)="startNewConversation()"
+          title="Nouvelle conversation"
+          aria-label="Nouvelle conversation"
+        >
+          <i class="bi bi-plus-lg"></i>
+        </button>
+      </div>
+
+      <div class="history-list">
+        <div class="history-item" *ngFor="let s of sessions">
+          <div class="info" (click)="openSession(s.id)">
+            <div class="title text-truncate">
+              {{ s.title || "Conversation" }}
+            </div>
+            <div class="meta">
+              {{ s.updatedAt | date : "EEEE d MMM, HH:mm" }}
+            </div>
+          </div>
+          <button
+            class="icon-btn danger"
+            (click)="$event.stopPropagation(); deleteSession(s.id)"
+            aria-label="Supprimer la conversation"
+            title="Supprimer"
+          >
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Corps du chat -->
+    <div #chatBody class="card-body chat-body">
+      <div *ngFor="let msg of messages">
+        <div
+          class="message-row"
+          [ngClass]="msg.sender === 'user' ? 'user' : 'bot'"
+        >
+          <!-- Avatar -->
+          <ng-container *ngIf="msg.sender === 'bot'">
+            <img src="assets/robot.png" alt="bot" class="avatar avatar-bot" />
+          </ng-container>
+          <ng-container *ngIf="msg.sender === 'user'">
+            <img src="assets/user.png" alt="user" class="avatar avatar-user" />
+          </ng-container>
+
+          <!-- Bulle -->
+          <div
+            [ngClass]="[
+              msg.sender === 'user'
+                ? 'bubble bubble-user'
+                : 'bubble bubble-bot',
+              msg.kind === 'table' ? 'bubble-table' : ''
+            ]"
+          >
+            <!-- Texte simple -->
+            <div
+              *ngIf="(msg.kind || 'text') === 'text'"
+              style="white-space: pre-line"
+            >
+              {{ msg.text }}
+            </div>
+
+            <!-- Résultat au format lignes (sans tableau) -->
+            <div *ngIf="msg.kind === 'table'" class="kv-result">
+              <div class="kv-row" *ngFor="let row of msg.table?.rows">
+                <div class="kv-label">{{ row.label }}</div>
+                <div class="kv-value">{{ row.value }}</div>
+              </div>
+
+              <div class="kv-row total" *ngIf="msg.table?.total">
+                <div class="kv-label">Total des coûts d'importation</div>
+                <div class="kv-value">{{ msg.table?.total }}</div>
+              </div>
+            </div>
+
+            <!-- Timestamp -->
+            <div class="timestamp">
+              {{ msg.timestamp | date : " HH:mm" }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spinner -->
+      <div *ngIf="loading" class="loading-spinner">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+
+    <!-- Pied (saisie) -->
+    <div class="chat-footer">
+      <form (ngSubmit)="sendMessage()" class="w-100">
+        <div class="input-wrap">
+          <input
+            [(ngModel)]="userInput"
+            name="userInput"
+            type="text"
+            class="form-control chat-text input-with-send"
+            placeholder="Posez votre question..."
+            [disabled]="loading"
+            autocomplete="off"
+            required
+          />
+
+          <!-- (optionnel) icône pièce jointe -->
+          <!--
+      <label class="attach-inside-btn" for="fileInput" title="Joindre un fichier">
+        <i class="bi bi-paperclip"></i>
+      </label>
+      <input id="fileInput" type="file" class="d-none" (change)="onFile($event)" />
+      -->
+
+          <!-- flèche d'envoi dans l'input -->
+          <button
+            class="send-inside-btn"
+            type="submit"
+            [disabled]="loading || !userInput.trim()"
+            aria-label="Envoyer"
+            title="Envoyer"
+          >
+            <i class="bi bi-send"></i>
+            <!-- ou bi-send-fill si tu préfères -->
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

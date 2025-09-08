@@ -1,0 +1,23 @@
+
+:root{
+  --brand-navy: #0E3A57;
+  --brand-navy-2: #133B5C;
+  --brand-orange: #F05A28;
+  --brand-bg: #0B2C44;
+  --brand-border: rgba(255,255,255,0.08);
+  --text: #ffffff;
+  --muted: #c9d6e2;
+}
+
+/* plein écran + fond unique */
+html, body, app-root { height: 100%; }
+body { margin: 0; background: var(--brand-bg); color: var(--text); }
+
+/* neutraliser le fond clair qui créait le "bloc derrière" */
+.centralise-chat {
+  background: transparent;  /* AVANT: #f4f8fb */
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
