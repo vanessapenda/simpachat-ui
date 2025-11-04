@@ -122,6 +122,15 @@
         <div class="dot"></div>
         <div class="dot"></div>
       </div>
+
+      <!-- COMPOSANT FEEDBACK -->
+      <app-feedback
+        *ngIf="showFeedback && !feedbackSubmittedForCurrentResult"
+        [sessionId]="currentSessionId || 'unknown'"
+        [simulationType]="lastSimulationType"
+        [vehicleInfo]="lastVehicleInfo"
+        (feedbackSubmitted)="onFeedbackSubmitted()"
+      ></app-feedback>
     </div>
 
     <!-- Pied (saisie) -->
