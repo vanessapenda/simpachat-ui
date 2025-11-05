@@ -5,11 +5,12 @@ import { HttpClientModule } from '@angular/common/http';
 import { Message, TableRow } from './message.model';
 import { ChatService } from '../chat.service';
 import { ConversationService, Conversation } from './conversation.service';
+import { FeedbackComponent } from '../feedback/feedback.component';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule, HttpClientModule, FeedbackComponent],
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.css']
 })
@@ -25,6 +26,12 @@ export class ChatComponent implements AfterViewChecked, OnInit {
   showHistory = false;
   sessions: Conversation[] = [];
   currentSessionId: string | null = null;
+
+  //  Gestion feedback
+  showFeedback = false;
+  lastSimulationType: 'cameroon' | 'external' | 'unknown' = 'unknown';
+  lastVehicleInfo: any = {};
+  feedbackSubmittedForCurrentResult = false;
 
   @ViewChild('chatBody') private chatBody!: ElementRef;
 
@@ -96,6 +103,10 @@ export class ChatComponent implements AfterViewChecked, OnInit {
     this.showHistory = false;
     this.sessions = this.convSvc.list();
 
+    //  Reset feedback
+    this.showFeedback = false;
+    this.feedbackSubmittedForCurrentResult = false;
+
     // Bienvenue pour toute nouvelle conversation
     this.ensureWelcomeIfEmpty();
 
@@ -112,6 +123,10 @@ export class ChatComponent implements AfterViewChecked, OnInit {
     this.messages = [...s.messages];
     this.userInput = '';
     this.showHistory = false;
+
+    // Reset feedback
+    this.showFeedback = false;
+    this.feedbackSubmittedForCurrentResult = false;
 
     // Sécurité : si jamais une session est vide, on affiche le message de bienvenue
     this.ensureWelcomeIfEmpty();
@@ -195,6 +210,9 @@ export class ChatComponent implements AfterViewChecked, OnInit {
     this.userInput = '';
     this.loading = true;
 
+    //  Masquer le feedback lors d'une nouvelle question
+    this.showFeedback = false;
+
     // On laisse le service gérer le contexte (il renvoie toujours context_fields et les mémorise)
     // Astuce : laisse le backend détecter la langue si tu veux, en passant undefined
     this.chatService.simulateFromText(text /* , 'fr' */).subscribe({
@@ -208,6 +226,23 @@ export class ChatComponent implements AfterViewChecked, OnInit {
           const resultObj = res?.result ?? res;
           const payload = this.toTablePayload(resultObj);
           this.messages.push({ sender: 'bot', timestamp: new Date(), kind: 'table', table: payload });
+
+          // Déterminer le type de simulation
+          this.lastSimulationType = res?.result?.estimation_euro ? 'external' : 'cameroon';
+
+          // Extraire les infos véhicule depuis le contexte
+          const fields = this.chatService.ctxFields;
+          this.lastVehicleInfo = {
+            marque: fields?.MARQUE,
+            modele: fields?.MODELE,
+            annee: fields?.ANNEE_FABRICATION
+          };
+
+          // Afficher le feedback après un court délai (pour laisser le résultat s'afficher)
+          setTimeout(() => {
+            this.showFeedback = true;
+            this.feedbackSubmittedForCurrentResult = false;
+          }, 500);
 
           // On peut réinitialiser le contexte pour une nouvelle simulation
           this.chatService.resetContext();
@@ -243,6 +278,12 @@ export class ChatComponent implements AfterViewChecked, OnInit {
     // Considère résultat si renvoie un breakdown/total à la racine
     // ou bien un objet { status:'ok', result:{...} }
     return !!(res?.breakdown || res?.total || res?.valeur_douane || (res?.status === 'ok' && res?.result));
+  }
+
+  //  Callback quand feedback soumis
+  onFeedbackSubmitted(): void {
+    this.showFeedback = false;
+    this.feedbackSubmittedForCurrentResult = true;
   }
 
   deleteSession(id: string): void {

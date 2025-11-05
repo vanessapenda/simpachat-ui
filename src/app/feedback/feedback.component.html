@@ -1,0 +1,100 @@
+<div class="feedback-container" *ngIf="!isSubmitted">
+  <div class="feedback-card">
+    <div class="feedback-header">
+      <h3 class="feedback-title">
+        <i class="bi bi-chat-heart"></i>
+        Votre avis nous intéresse
+      </h3>
+      <button
+        class="close-btn"
+        (click)="cancel()"
+        aria-label="Fermer"
+        type="button"
+      >
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="feedback-body">
+      <!-- Étoiles de notation -->
+      <div class="rating-section">
+        <p class="rating-label">Comment évaluez-vous cette simulation ?</p>
+        <div class="stars">
+          <button
+            *ngFor="let star of [1, 2, 3, 4, 5]"
+            class="star"
+            [class.filled]="star <= (hoverRating || rating)"
+            [class.hover]="star <= hoverRating"
+            (click)="setRating(star)"
+            (mouseenter)="onStarHover(star)"
+            (mouseleave)="onStarLeave()"
+            type="button"
+            [attr.aria-label]="star + ' étoile' + (star > 1 ? 's' : '')"
+          >
+            <i class="bi bi-star-fill"></i>
+          </button>
+        </div>
+        <p class="rating-text" *ngIf="rating > 0">
+          {{ rating }} étoile{{ rating > 1 ? "s" : "" }}
+        </p>
+      </div>
+
+      <!-- Zone de commentaire -->
+      <div class="comment-section">
+        <label for="feedbackComment" class="comment-label">
+          Commentaire (optionnel)
+        </label>
+        <textarea
+          id="feedbackComment"
+          [(ngModel)]="comment"
+          placeholder="Partagez votre expérience..."
+          rows="3"
+          maxlength="500"
+          [disabled]="isSubmitting"
+        ></textarea>
+        <small class="char-count">{{ comment.length }}/500</small>
+      </div>
+
+      <!-- Message d'erreur -->
+      <div class="error-message" *ngIf="errorMessage">
+        <i class="bi bi-exclamation-circle"></i>
+        {{ errorMessage }}
+      </div>
+
+      <!-- Boutons d'action -->
+      <div class="actions">
+        <button
+          class="btn btn-secondary"
+          (click)="cancel()"
+          [disabled]="isSubmitting"
+          type="button"
+        >
+          Plus tard
+        </button>
+        <button
+          class="btn btn-primary"
+          (click)="submit()"
+          [disabled]="isSubmitting || rating === 0"
+          type="button"
+        >
+          <span *ngIf="!isSubmitting">Envoyer</span>
+          <span *ngIf="isSubmitting">
+            <i class="bi bi-arrow-repeat spinner"></i>
+            Envoi...
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Message de confirmation -->
+<div class="feedback-success" *ngIf="isSubmitted">
+  <div class="success-card">
+    <div class="success-icon">
+      <i class="bi bi-check-circle-fill"></i>
+    </div>
+    <h3>Merci pour votre avis !</h3>
+    <p>Votre retour nous aide à améliorer SimpaChat.</p>
+  </div>
+</div>
