@@ -50,7 +50,6 @@ export class ChatService {
   simulateFromText(text: string, lang: string = 'fr', contextFields?: any): Observable<any> {
     const ctx = contextFields ?? this.ctxFields; // si non fourni, on prend le contexte stocké
     const body = { text, lang, session_id: this.sessionId, context_fields: ctx }; // ← session_id + contexte
-    console.log(this.enService.getConfig().apiBase);
     return this.http.post(`${this.enService.getConfig().apiBase}/chat/simulate-from-text`, body).pipe(
       tap((res: any) => {
         if (res?.fields) {

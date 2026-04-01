@@ -1,5 +1,5 @@
 export const environment = {
   production: false,
   test: true,
-  apiBase: 'http://localhost:5000' // lien du serveur
+  apiBase: 'https://simpa.api.test.guichetunique.cm' // lien du serveur
 };

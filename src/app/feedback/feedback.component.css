@@ -2,6 +2,7 @@
 .feedback-container {
   margin: 16px 0;
   animation: slideIn 0.3s ease-out;
+   pointer-events: auto !important;
 }
 
 @keyframes slideIn {
@@ -22,6 +23,7 @@
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  pointer-events: auto !important;
 }
 
 /* Header */
@@ -52,6 +54,7 @@
   padding: 4px;
   border-radius: 4px;
   transition: background 0.2s, color 0.2s;
+  pointer-events: auto !important;
 }
 
 .close-btn:hover {
@@ -69,6 +72,7 @@
 /* Section notation */
 .rating-section {
   text-align: center;
+  pointer-events: auto !important;
 }
 
 .rating-label {
@@ -83,6 +87,9 @@
   justify-content: center;
   gap: 8px;
   margin-bottom: 8px;
+  position: relative;
+  z-index: 100;
+  pointer-events: auto !important;
 }
 
 .star {
@@ -93,6 +100,13 @@
   cursor: pointer;
   transition: all 0.2s ease;
   padding: 0;
+  /*  pour iframe */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  position: relative;
+  z-index: 101;
+  pointer-events: auto !important;
 }
 
 .star:hover {
@@ -136,6 +150,7 @@ textarea {
   font-family: inherit;
   resize: vertical;
   transition: border-color 0.2s;
+  pointer-events: auto !important;
 }
 
 textarea:focus {
@@ -182,6 +197,7 @@ textarea:disabled {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  pointer-events: auto !important;
 }
 
 .btn:disabled {

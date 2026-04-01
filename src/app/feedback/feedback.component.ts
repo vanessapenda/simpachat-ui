@@ -33,6 +33,7 @@ export class FeedbackComponent {
    */
   setRating(value: number): void {
     this.rating = value;
+    this.errorMessage = ''; // Reset error si présent
   }
 
   /**

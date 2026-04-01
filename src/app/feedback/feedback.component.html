@@ -7,7 +7,7 @@
       </h3>
       <button
         class="close-btn"
-        (click)="cancel()"
+        (click)="cancel(); $event.stopPropagation()"
         aria-label="Fermer"
         type="button"
       >
@@ -19,15 +19,20 @@
       <!-- Étoiles de notation -->
       <div class="rating-section">
         <p class="rating-label">Comment évaluez-vous cette simulation ?</p>
-        <div class="stars">
+        <div class="stars" (click)="$event.stopPropagation()">
           <button
             *ngFor="let star of [1, 2, 3, 4, 5]"
             class="star"
             [class.filled]="star <= (hoverRating || rating)"
             [class.hover]="star <= hoverRating"
-            (click)="setRating(star)"
+            (click)="
+              setRating(star); $event.stopPropagation(); $event.preventDefault()
+            "
             (mouseenter)="onStarHover(star)"
             (mouseleave)="onStarLeave()"
+            (touchstart)="
+              setRating(star); $event.stopPropagation(); $event.preventDefault()
+            "
             type="button"
             [attr.aria-label]="star + ' étoile' + (star > 1 ? 's' : '')"
           >
@@ -51,6 +56,7 @@
           rows="3"
           maxlength="500"
           [disabled]="isSubmitting"
+          (click)="$event.stopPropagation()"
         ></textarea>
         <small class="char-count">{{ comment.length }}/500</small>
       </div>
@@ -65,7 +71,7 @@
       <div class="actions">
         <button
           class="btn btn-secondary"
-          (click)="cancel()"
+          (click)="cancel(); $event.stopPropagation()"
           [disabled]="isSubmitting"
           type="button"
         >
@@ -73,7 +79,7 @@
         </button>
         <button
           class="btn btn-primary"
-          (click)="submit()"
+          (click)="submit(); $event.stopPropagation()"
           [disabled]="isSubmitting || rating === 0"
           type="button"
         >

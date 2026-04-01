@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="dist">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/dist/Simpachat-ui.1.0.0-beta.1.zip!/" />
+      <root url="jar://$PROJECT_DIR$/dist/simpachat-ui.1.0.0-beta.2.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

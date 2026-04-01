@@ -14,7 +14,6 @@ export class ConfigService {
 
   //fonction pour récupérer le bon fichier de configuration en fonction du profil
   async loadConfig(): Promise<void> {
-    console.log('Environnement', environment);
     if(environment.test)
       this.configFile = 'config.test.json'
     else if(environment.production)
@@ -36,7 +35,10 @@ export class ConfigService {
       const data = await lastValueFrom(this.http.get(url, { headers }));
       this.config = data;
     } catch (error) {
-      console.error('Erreur lors du chargement de la configuration', error);
+      throw new Error(
+        `Impossible de charger la configuration "${this.configFile}". ` +
+        `Vérifiez que le fichier existe dans assets/config/ et que le serveur est accessible.`
+      );
     }
   }
 
