@@ -34,6 +34,7 @@ export class ChatComponent implements AfterViewChecked, OnInit {
   feedbackSubmittedForCurrentResult = false;
 
   @ViewChild('chatBody') private chatBody!: ElementRef;
+  @ViewChild('userInputEl') private userInputEl?: ElementRef<HTMLTextAreaElement>;
 
   constructor(private chatService: ChatService, private convSvc: ConversationService) {}
 
@@ -55,7 +56,14 @@ export class ChatComponent implements AfterViewChecked, OnInit {
     this.ensureWelcomeIfEmpty();
   }
 
-  ngAfterViewChecked(): void { this.scrollToBottom(); }
+  private shouldScroll = false;
+
+ngAfterViewChecked(): void {
+  if (this.shouldScroll) {
+    this.scrollToBottom();
+    this.shouldScroll = false;
+  }
+}
 
   private scrollToBottom(): void {
     try {
@@ -100,6 +108,7 @@ export class ChatComponent implements AfterViewChecked, OnInit {
     this.currentSessionId = s.id;
     this.messages = [];
     this.userInput = '';
+    this.resetInputHeight();
     this.showHistory = false;
     this.sessions = this.convSvc.list();
 
@@ -197,7 +206,25 @@ export class ChatComponent implements AfterViewChecked, OnInit {
     return { rows, total: totalStr };
   }
 
-  // --- UNIQUE handler: pas de keydown.enter dans le template
+  // --- Zone de saisie auto-extensible (retour à la ligne sans passer sous le bouton d'envoi)
+  autoGrow(el: HTMLTextAreaElement): void {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  private resetInputHeight(): void {
+    const el = this.userInputEl?.nativeElement;
+    if (el) el.style.height = 'auto';
+  }
+
+  onEnterKey(event: Event): void {
+    const kbEvent = event as KeyboardEvent;
+    if (!kbEvent.shiftKey) {
+      kbEvent.preventDefault();
+      this.sendMessage();
+    }
+  }
+
   sendMessage(): void {
     if (this.loading) return; // anti-double envoi
     const text = (this.userInput || '').trim();
@@ -208,6 +235,8 @@ export class ChatComponent implements AfterViewChecked, OnInit {
     this.saveMessages();
     this.maybeSetTitleFromFirstUser();
     this.userInput = '';
+    this.resetInputHeight();
+    this.shouldScroll = true;
     this.loading = true;
 
     //  Masquer le feedback lors d'une nouvelle question
@@ -262,6 +291,7 @@ export class ChatComponent implements AfterViewChecked, OnInit {
         }
 
         this.loading = false;
+        this.shouldScroll = true;
         this.saveMessages();
         this.sessions = this.convSvc.list();
       },

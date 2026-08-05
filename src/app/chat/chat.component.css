@@ -6,6 +6,9 @@
   --blue: var(--brand-navy-2, #083a57);
   --blue-soft: rgba(13,75,111,.12);
   --blue-border: rgba(13,75,111,.08);
+  --orange: var(--brand-orange, #f05a28);
+  --orange-soft: rgba(240,90,40,.12);
+  --orange-border: rgba(240,90,40,.25);
 }
 
 /* ===== Carte plein écran ===== */
@@ -54,7 +57,7 @@
 /* ===== Corps du chat ===== */
 .chat-body {
   background: #fff;
-  height: 420px; overflow-y: auto;
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
   display: flex; flex-direction: column; gap: 15px;
   padding: 24px !important;
 }
@@ -109,12 +112,18 @@
   padding: 10px 16px; display: flex;
 }
 
-input[type="text"]{
+.chat-text{
   border-radius: 16px !important;
   border: 1.2px solid #c5d6e2 !important;
   font-size: 1.04em !important;
   padding: 8px 15px !important;
   background: #f8f9fa !important;
+  resize: none;
+  overflow-y: auto;
+  max-height: 120px;
+  line-height: 1.4;
+  display: block;
+  width: 100%;
 }
 
 button{ border-radius: 16px !important; min-width: 80px !important; font-weight: 600 !important; }
@@ -186,41 +195,23 @@ button{ border-radius: 16px !important; min-width: 80px !important; font-weight:
 
 input[type="file"].d-none{ display:none !important; }
 
-/* Résultat key-value dans la bulle (remplace le tableau) */
+/* Résultat en texte fluide (naturel, pas aligné en colonnes comme un tableau) */
 .bubble .kv-result{
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  line-height: 1.7;
 }
 
-.bubble .kv-row{
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between; /* libellé à gauche, montant à droite */
-  gap: 12px;
-}
-
-.bubble .kv-label{
+.bubble .kv-item{
   color: #2c3e50;
-  opacity: .9;
-  /* évite les retours trop serrés */
-  word-break: break-word;
-  flex: 1 1 auto;
 }
 
-.bubble .kv-value{
-  font-weight: 600;
-  font-variant-numeric: tabular-nums; /* colonnes de chiffres bien alignées */
-  white-space: nowrap;
-  margin-left: 12px;
-  flex: 0 0 auto;
-  text-align: right;
+.bubble .kv-item strong{
+  font-variant-numeric: tabular-nums;
 }
 
-/* Ligne total plus marquée */
-.bubble .kv-row.total{
-  margin-top: 6px;
+/* Ligne total, mise en avant sur sa propre ligne */
+.bubble .kv-total{
+  margin-top: 10px;
   padding-top: 8px;
   border-top: 1px solid rgba(0,0,0,0.12);
   font-weight: 700;
@@ -276,7 +267,7 @@ input[type="file"].d-none{ display:none !important; }
 .input-with-send{ padding-right: 3.2rem !important; }
 
 .send-inside-btn{
-  position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  position:absolute; right:8px; bottom:6px; transform:none;
   width:34px; height:34px; border-radius:50%; border:none;
   background:transparent; display:flex; align-items:center; justify-content:center;
   cursor:pointer;
@@ -285,36 +276,42 @@ input[type="file"].d-none{ display:none !important; }
 }
 .send-inside-btn i{ font-size: 1.05rem; }
 
-/* Hover/focus BLEU (plus d’orange) */
+/* Hover/focus ORANGE */
 .input-wrap:hover .send-inside-btn:not(:disabled),
 .send-inside-btn:hover:not(:disabled){
-  color: var(--blue);
-  background: var(--blue-soft);
-  box-shadow: 0 0 0 2px var(--blue-border) inset;
+  color: var(--orange);
+  background: var(--orange-soft);
+  box-shadow: 0 0 0 2px var(--orange-border) inset;
 }
 .input-wrap:focus-within .send-inside-btn:not(:disabled){
-  color: var(--blue);
-  background: var(--blue-soft);
-  box-shadow: 0 0 0 2px var(--blue-border) inset;
+  color: var(--orange);
+  background: var(--orange-soft);
+  box-shadow: 0 0 0 2px var(--orange-border) inset;
 }
 
-.send-inside-btn:active:not(:disabled){ transform: translateY(-50%) scale(.97); }
+.send-inside-btn:active:not(:disabled){ transform: scale(.97); }
 .send-inside-btn:disabled{
   color:#b9c3cb; background:transparent; cursor:not-allowed; pointer-events:none;
 }
 
 /* (optionnel) pièce jointe dans l'input */
 .attach-inside-btn{
-  position:absolute; right:46px; top:50%; transform:translateY(-50%);
+  position:absolute; right:46px; bottom:6px;
   color: var(--blue); background:transparent; padding:4px 6px;
   border-radius:10px; cursor:pointer; transition: color .15s, background .15s;
 }
 .attach-inside-btn:hover{
-  color: var(--blue);
-  background: var(--blue-soft);
+  color: var(--orange);
+  background: var(--orange-soft);
 }
 
-.history-btn {
+.chat-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-btn, .new-conv-btn {
   background: #F05A28;
   border: none;
   color: white;
@@ -325,7 +322,7 @@ input[type="file"].d-none{ display:none !important; }
   transition: 0.2s;
 }
 
-.history-btn:hover {
+.history-btn:hover, .new-conv-btn:hover {
   background: #d84315;
 }
 

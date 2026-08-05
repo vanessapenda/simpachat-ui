@@ -6,14 +6,24 @@
         <img src="assets/logo.png" alt="SimpaChat" class="chat-logo" />
         <span class="chat-title">SimpaChat</span>
       </div>
-      <button
-        class="history-btn"
-        (click)="toggleHistory()"
-        title="Historique"
-        aria-label="Consulter l'historique"
-      >
-        <i class="bi bi-clock-history"></i>
-      </button>
+      <div class="chat-header-right">
+        <button
+          class="new-conv-btn"
+          (click)="startNewConversation()"
+          title="Nouvelle conversation"
+          aria-label="Nouvelle conversation"
+        >
+          <i class="bi bi-plus-lg"></i>
+        </button>
+        <button
+          class="history-btn"
+          (click)="toggleHistory()"
+          title="Historique"
+          aria-label="Consulter l'historique"
+        >
+          <i class="bi bi-clock-history"></i>
+        </button>
+      </div>
     </div>
 
     <!-- Panneau Vos Chats -->
@@ -27,18 +37,8 @@
       *ngIf="showHistory"
       (click)="$event.stopPropagation()"
     >
-      <div
-        class="d-flex align-items-center justify-content-between history-header"
-      >
+      <div class="history-header">
         <div class="fw-semibold">Historiques</div>
-        <button
-          class="icon-btn header-btn"
-          (click)="startNewConversation()"
-          title="Nouvelle conversation"
-          aria-label="Nouvelle conversation"
-        >
-          <i class="bi bi-plus-lg"></i>
-        </button>
       </div>
 
       <div class="history-list">
@@ -48,7 +48,7 @@
               {{ s.title || "Conversation" }}
             </div>
             <div class="meta">
-              {{ s.updatedAt | date : "EEEE d MMM, HH:mm" }}
+              {{ s.updatedAt | date: "EEEE d MMM, HH:mm" }}
             </div>
           </div>
           <button
@@ -84,7 +84,7 @@
               msg.sender === 'user'
                 ? 'bubble bubble-user'
                 : 'bubble bubble-bot',
-              msg.kind === 'table' ? 'bubble-table' : ''
+              msg.kind === 'table' ? 'bubble-table' : '',
             ]"
           >
             <!-- Texte simple -->
@@ -95,22 +95,19 @@
               {{ msg.text }}
             </div>
 
-            <!-- Résultat au format lignes (sans tableau) -->
+            <!-- Résultat au format naturel (texte fluide, pas un tableau) -->
             <div *ngIf="msg.kind === 'table'" class="kv-result">
-              <div class="kv-row" *ngFor="let row of msg.table?.rows">
-                <div class="kv-label">{{ row.label }}</div>
-                <div class="kv-value">{{ row.value }}</div>
-              </div>
-
-              <div class="kv-row total" *ngIf="msg.table?.total">
-                <div class="kv-label">Total des coûts d'importation</div>
-                <div class="kv-value">{{ msg.table?.total }}</div>
+              <span class="kv-item" *ngFor="let row of msg.table?.rows; let last = last"
+                >{{ row.label }} : <strong>{{ row.value }}</strong>{{ last ? '.' : ', ' }}</span
+              >
+              <div class="kv-total" *ngIf="msg.table?.total">
+                Total des coûts d'importation : <strong>{{ msg.table?.total }}</strong>
               </div>
             </div>
 
             <!-- Timestamp -->
             <div class="timestamp">
-              {{ msg.timestamp | date : " HH:mm" }}
+              {{ msg.timestamp | date: " HH:mm" }}
             </div>
           </div>
         </div>
@@ -122,31 +119,34 @@
         <div class="dot"></div>
         <div class="dot"></div>
       </div>
-
-      <!-- COMPOSANT FEEDBACK -->
-      <app-feedback
-        *ngIf="showFeedback && !feedbackSubmittedForCurrentResult"
-        [sessionId]="currentSessionId || 'unknown'"
-        [simulationType]="lastSimulationType"
-        [vehicleInfo]="lastVehicleInfo"
-        (feedbackSubmitted)="onFeedbackSubmitted()"
-      ></app-feedback>
     </div>
+
+    <!-- COMPOSANT FEEDBACK -->
+    <app-feedback
+      *ngIf="showFeedback && !feedbackSubmittedForCurrentResult"
+      [sessionId]="currentSessionId || 'unknown'"
+      [simulationType]="lastSimulationType"
+      [vehicleInfo]="lastVehicleInfo"
+      (feedbackSubmitted)="onFeedbackSubmitted()"
+    ></app-feedback>
 
     <!-- Pied (saisie) -->
     <div class="chat-footer">
       <form (ngSubmit)="sendMessage()" class="w-100">
         <div class="input-wrap">
-          <input
+          <textarea
+            #userInputEl
             [(ngModel)]="userInput"
             name="userInput"
-            type="text"
+            rows="1"
             class="form-control chat-text input-with-send"
             placeholder="Posez votre question..."
             [disabled]="loading"
             autocomplete="off"
             required
-          />
+            (input)="autoGrow(userInputEl)"
+            (keydown.enter)="onEnterKey($event)"
+          ></textarea>
 
           <!-- (optionnel) icône pièce jointe -->
           <!--
