@@ -4,7 +4,10 @@
     <div class="chat-header">
       <div class="chat-header-left">
         <img src="assets/logo.png" alt="SimpaChat" class="chat-logo" />
-        <span class="chat-title">SimpaChat</span>
+        <div class="chat-title-block">
+          <span class="chat-title">SimpaChat</span>
+          <span class="chat-subtitle"><span class="status-dot"></span>Assistant en ligne</span>
+        </div>
       </div>
       <div class="chat-header-right">
         <button
@@ -13,7 +16,7 @@
           title="Nouvelle conversation"
           aria-label="Nouvelle conversation"
         >
-          <i class="bi bi-plus-lg"></i>
+          <i class="bi bi-plus-lg"></i><span>Nouvelle</span>
         </button>
         <button
           class="history-btn"
@@ -26,59 +29,138 @@
       </div>
     </div>
 
-    <!-- Panneau Vos Chats -->
-    <div
-      class="history-backdrop"
-      *ngIf="showHistory"
-      (click)="toggleHistory()"
-    ></div>
+    <!-- Panneau Historique -->
     <div
       class="history-panel"
       *ngIf="showHistory"
       (click)="$event.stopPropagation()"
     >
       <div class="history-header">
-        <div class="fw-semibold">Historiques</div>
+        <div class="history-header-title">Historique</div>
+        <button
+          class="history-close-btn"
+          (click)="toggleHistory()"
+          aria-label="Fermer l'historique"
+          title="Fermer"
+        >
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="history-search">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          [(ngModel)]="historySearch"
+          [ngModelOptions]="{ standalone: true }"
+          placeholder="Rechercher une conversation"
+        />
       </div>
 
       <div class="history-list">
-        <div class="history-item" *ngFor="let s of sessions">
-          <div class="info" (click)="openSession(s.id)">
-            <div class="title text-truncate">
-              {{ s.title || "Conversation" }}
+        <ng-container *ngFor="let group of groupedSessions; trackBy: trackByGroupLabel">
+          <div class="history-group-label">{{ group.label }}</div>
+          <div
+            class="history-item"
+            *ngFor="let s of group.items; trackBy: trackBySessionId"
+            [class.active]="s.id === currentSessionId"
+          >
+            <div class="history-item-icon">
+              <i class="bi bi-chat-square-text"></i>
             </div>
-            <div class="meta">
-              {{ s.updatedAt | date: "EEEE d MMM, HH:mm" }}
+            <div
+              class="info"
+              (click)="editingSessionId !== s.id && openSession(s.id)"
+            >
+              <ng-container *ngIf="editingSessionId === s.id; else titleDisplay">
+                <input
+                  type="text"
+                  class="rename-input"
+                  [id]="'rename-input-' + s.id"
+                  [(ngModel)]="editingTitle"
+                  [ngModelOptions]="{ standalone: true }"
+                  maxlength="60"
+                  (click)="$event.stopPropagation()"
+                  (keydown.enter)="confirmRename(s)"
+                  (keydown.escape)="cancelRename()"
+                  (blur)="confirmRename(s)"
+                />
+              </ng-container>
+              <ng-template #titleDisplay>
+                <div class="title text-truncate">
+                  {{ s.title || "Conversation" }}
+                </div>
+                <div class="preview text-truncate" *ngIf="getPreview(s) as preview">
+                  {{ preview }}
+                </div>
+                <div class="meta">
+                  {{ s.updatedAt | date: "d MMM, HH:mm" }}
+                </div>
+              </ng-template>
+            </div>
+            <div class="history-item-actions">
+              <button
+                class="icon-btn"
+                *ngIf="editingSessionId !== s.id"
+                (click)="$event.stopPropagation(); startRename(s)"
+                aria-label="Renommer la conversation"
+                title="Renommer"
+              >
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button
+                class="icon-btn danger"
+                (click)="$event.stopPropagation(); deleteSession(s.id)"
+                aria-label="Supprimer la conversation"
+                title="Supprimer"
+              >
+                <i class="bi bi-trash"></i>
+              </button>
             </div>
           </div>
-          <button
-            class="icon-btn danger"
-            (click)="$event.stopPropagation(); deleteSession(s.id)"
-            aria-label="Supprimer la conversation"
-            title="Supprimer"
-          >
-            <i class="bi bi-trash"></i>
-          </button>
+        </ng-container>
+
+        <div class="history-empty" *ngIf="groupedSessions.length === 0">
+          Aucune conversation trouvée.
         </div>
       </div>
+
+      <button class="history-new-btn" (click)="startNewConversation()">
+        <i class="bi bi-plus-lg"></i> Nouvelle conversation
+      </button>
     </div>
 
     <!-- Corps du chat -->
     <div #chatBody class="card-body chat-body">
       <div *ngFor="let msg of messages">
+        <!-- Choix rapides (simulations disponibles) -->
+        <div class="quick-replies" *ngIf="msg.kind === 'quick-replies'">
+          <button
+            *ngFor="let opt of msg.quickReplies"
+            type="button"
+            class="quick-reply-btn"
+            [disabled]="loading"
+            (click)="sendQuickReply(opt.text)"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+
         <div
           class="message-row"
+          *ngIf="msg.kind !== 'quick-replies'"
           [ngClass]="msg.sender === 'user' ? 'user' : 'bot'"
         >
           <!-- Avatar -->
           <ng-container *ngIf="msg.sender === 'bot'">
-            <img src="assets/robot.png" alt="bot" class="avatar avatar-bot" />
+            <img src="assets/bot-avatar.svg" alt="bot" class="avatar avatar-bot" />
           </ng-container>
           <ng-container *ngIf="msg.sender === 'user'">
-            <img src="assets/user.png" alt="user" class="avatar avatar-user" />
+            <img src="assets/user-avatar.svg" alt="user" class="avatar avatar-user" />
           </ng-container>
 
-          <!-- Bulle -->
+          <!-- Bulle + pied (horodatage en dehors de la bulle) -->
+          <div class="bubble-col">
           <div
             [ngClass]="[
               msg.sender === 'user'
@@ -95,20 +177,126 @@
               {{ msg.text }}
             </div>
 
-            <!-- Résultat au format naturel (texte fluide, pas un tableau) -->
+            <!-- Liste à cocher des valeurs encore attendues (ex: FOB / Fret / Assurance) -->
+            <ng-container *ngIf="msg.checklist?.length">
+              <ul class="checklist">
+                <li *ngFor="let item of msg.checklist">{{ item }}</li>
+              </ul>
+              <div class="checklist-note" *ngIf="msg.checklistNote">{{ msg.checklistNote }}</div>
+            </ng-container>
+
+            <!-- Résultat au format liste naturelle (une ligne par poste, pas un tableau aligné) -->
             <div *ngIf="msg.kind === 'table'" class="kv-result">
-              <span class="kv-item" *ngFor="let row of msg.table?.rows; let last = last"
-                >{{ row.label }} : <strong>{{ row.value }}</strong>{{ last ? '.' : ', ' }}</span
-              >
+              <div class="kv-item" *ngFor="let row of msg.table?.rows">
+                {{ row.label }} : <strong>{{ row.value }}</strong>
+              </div>
               <div class="kv-total" *ngIf="msg.table?.total">
-                Total des coûts d'importation : <strong>{{ msg.table?.total }}</strong>
+                {{ msg.table?.totalLabel || "Total des coûts d'importation" }} : <strong>{{ msg.table?.total }}</strong>
               </div>
             </div>
 
-            <!-- Timestamp -->
-            <div class="timestamp">
-              {{ msg.timestamp | date: " HH:mm" }}
+            <!-- Lien de téléchargement du PDF de résultat -->
+            <div *ngIf="msg.kind === 'pdf-link'" class="pdf-link">
+              <div style="white-space: pre-line">{{ msg.text }}</div>
+              <a
+                class="pdf-download-btn"
+                [href]="msg.pdfUrl"
+                target="_blank"
+                rel="noopener"
+              >
+                <i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF
+              </a>
             </div>
+
+            <!-- Liste des produits de première nécessité à choisir -->
+            <div *ngIf="msg.kind === 'product-select'" class="product-select">
+              <div style="white-space: pre-line">{{ msg.text }}</div>
+              <div class="product-select-list">
+                <button
+                  *ngFor="let p of msg.productOptions"
+                  type="button"
+                  class="product-select-btn"
+                  [disabled]="loading"
+                  (click)="sendQuickReply(p.label)"
+                >
+                  {{ p.label }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Offre facultative de PDF, affichée juste après un résultat -->
+            <div *ngIf="msg.kind === 'pdf-offer'" class="pdf-offer">
+              <div>{{ msg.offerLang === 'en' ? 'Would you like a PDF of this simulation?' : 'Souhaitez-vous que je vous génère un PDF de cette simulation ?' }}</div>
+              <div class="pdf-offer-actions">
+                <button type="button" class="pdf-offer-btn pdf-offer-yes" (click)="acceptPdfOffer()">
+                  {{ msg.offerLang === 'en' ? 'Yes, generate the PDF' : 'Oui, génère le PDF' }}
+                </button>
+                <button type="button" class="pdf-offer-btn pdf-offer-no" (click)="declinePdfOffer()">
+                  {{ msg.offerLang === 'en' ? 'No thanks' : 'Non merci' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Demande d'avis intégrée au chat (facultative, non bloquante) -->
+            <div *ngIf="msg.kind === 'feedback' && msg.feedback as fb" class="inline-feedback">
+              <ng-container *ngIf="!fb.submitted; else feedbackThanks">
+                <div class="feedback-prompt">{{ fb.lang === 'en' ? 'How would you rate this simulation? (optional)' : 'Comment évaluez-vous cette simulation ? (facultatif)' }}</div>
+                <div class="feedback-stars">
+                  <button
+                    *ngFor="let star of [1, 2, 3, 4, 5]"
+                    type="button"
+                    class="feedback-star"
+                    [class.filled]="star <= fb.rating"
+                    [disabled]="fb.submitting"
+                    (click)="setFeedbackRating(msg, star)"
+                    [attr.aria-label]="star + ' étoile' + (star > 1 ? 's' : '')"
+                  >
+                    <i class="bi bi-star-fill"></i>
+                  </button>
+                </div>
+                <div class="feedback-comment-row">
+                  <input
+                    type="text"
+                    [(ngModel)]="fb.comment"
+                    [ngModelOptions]="{ standalone: true }"
+                    [placeholder]="fb.lang === 'en' ? 'A comment (optional)...' : 'Un commentaire (facultatif)...'"
+                    [disabled]="fb.submitting"
+                    (keydown.enter)="submitInlineFeedback(msg)"
+                  />
+                  <button
+                    type="button"
+                    class="feedback-send"
+                    [disabled]="fb.submitting || fb.rating === 0"
+                    (click)="submitInlineFeedback(msg)"
+                    aria-label="Envoyer l'avis"
+                  >
+                    <i class="bi bi-send"></i>
+                  </button>
+                </div>
+              </ng-container>
+              <ng-template #feedbackThanks>
+                <div class="feedback-thanks">{{ fb.lang === 'en' ? 'Thanks for sharing your feedback 😊' : 'Merci de nous avoir soumis votre avis 😊' }}</div>
+              </ng-template>
+            </div>
+
+          </div>
+
+          <!-- Pied de message : horodatage (+ bouton "renvoyer" si échec), sous la bulle -->
+          <div class="msg-meta" *ngIf="(msg.kind || 'text') !== 'feedback'">
+            <button
+              *ngIf="msg.sender === 'user' && msg.status === 'failed'"
+              type="button"
+              class="retry-btn"
+              (click)="retryMessage(msg)"
+              [disabled]="loading"
+              aria-label="Renvoyer ce message"
+              title="Renvoyer ce message"
+            >
+              <i class="bi bi-arrow-clockwise"></i>
+              <span class="retry-label">Réessayez</span>
+            </button>
+            <span class="timestamp">{{ msg.timestamp | date: "HH:mm" }}</span>
+          </div>
           </div>
         </div>
       </div>
@@ -121,53 +309,33 @@
       </div>
     </div>
 
-    <!-- COMPOSANT FEEDBACK -->
-    <app-feedback
-      *ngIf="showFeedback && !feedbackSubmittedForCurrentResult"
-      [sessionId]="currentSessionId || 'unknown'"
-      [simulationType]="lastSimulationType"
-      [vehicleInfo]="lastVehicleInfo"
-      (feedbackSubmitted)="onFeedbackSubmitted()"
-    ></app-feedback>
-
     <!-- Pied (saisie) -->
     <div class="chat-footer">
-      <form (ngSubmit)="sendMessage()" class="w-100">
-        <div class="input-wrap">
-          <textarea
-            #userInputEl
-            [(ngModel)]="userInput"
-            name="userInput"
-            rows="1"
-            class="form-control chat-text input-with-send"
-            placeholder="Posez votre question..."
-            [disabled]="loading"
-            autocomplete="off"
-            required
-            (input)="autoGrow(userInputEl)"
-            (keydown.enter)="onEnterKey($event)"
-          ></textarea>
+      <form (ngSubmit)="sendMessage()" class="input-row">
+        <textarea
+          #userInputEl
+          [(ngModel)]="userInput"
+          name="userInput"
+          rows="1"
+          class="form-control chat-text"
+          placeholder="Posez votre question..."
+          [disabled]="loading"
+          autocomplete="off"
+          required
+          (input)="autoGrow(userInputEl)"
+          (keydown.enter)="onEnterKey($event)"
+        ></textarea>
 
-          <!-- (optionnel) icône pièce jointe -->
-          <!--
-      <label class="attach-inside-btn" for="fileInput" title="Joindre un fichier">
-        <i class="bi bi-paperclip"></i>
-      </label>
-      <input id="fileInput" type="file" class="d-none" (change)="onFile($event)" />
-      -->
-
-          <!-- flèche d'envoi dans l'input -->
-          <button
-            class="send-inside-btn"
-            type="submit"
-            [disabled]="loading || !userInput.trim()"
-            aria-label="Envoyer"
-            title="Envoyer"
-          >
-            <i class="bi bi-send"></i>
-            <!-- ou bi-send-fill si tu préfères -->
-          </button>
-        </div>
+        <!-- Bouton d'envoi, séparé du champ de saisie -->
+        <button
+          class="send-btn"
+          type="submit"
+          [disabled]="loading || !userInput.trim()"
+          aria-label="Envoyer"
+          title="Envoyer"
+        >
+          <i class="bi bi-send"></i>
+        </button>
       </form>
     </div>
   </div>

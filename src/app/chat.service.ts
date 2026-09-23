@@ -26,6 +26,21 @@ export class ChatService {
     return this.ctxFieldsSubject.value;
   }
 
+  // Instantané du dernier résultat de simulation abouti (fields + result + lang), utilisé
+  // pour générer un PDF sur demande ultérieure de l'utilisateur. Volontairement PAS réinitialisé
+  // par resetContext() : celui-ci change de session_id + vide ctxFields juste après l'affichage
+  // d'un résultat, donc au tour suivant ("génère-moi ça en PDF"), ni la session backend ni
+  // context_fields ne contiennent plus ce résultat — d'où cet instantané envoyé à part.
+  private lastSimulation: { fields: any; result: any; lang: string } | null = null;
+
+  setLastSimulation(fields: any, result: any, lang: string): void {
+    this.lastSimulation = { fields, result, lang };
+  }
+
+  get lastSimulationSnapshot(): { fields: any; result: any; lang: string } | null {
+    return this.lastSimulation;
+  }
+
   /** Réinitialiser la conversation (vide le contexte) */
   resetContext(): void {
     this.ctxFieldsSubject.next({});
@@ -47,9 +62,12 @@ export class ChatService {
   }
 
   /** Conversation orchestrée par le backend (LLM) — envoie TOUJOURS le contexte courant et le met à jour au retour */
-  simulateFromText(text: string, lang: string = 'fr', contextFields?: any): Observable<any> {
+  simulateFromText(text: string, lang?: string, contextFields?: any): Observable<any> {
     const ctx = contextFields ?? this.ctxFields; // si non fourni, on prend le contexte stocké
-    const body = { text, lang, session_id: this.sessionId, context_fields: ctx }; // ← session_id + contexte
+    const body = {
+      text, lang, session_id: this.sessionId, context_fields: ctx,
+      last_simulation: this.lastSimulation // pour une éventuelle demande d'export PDF (voir plus haut)
+    };
     return this.http.post(`${this.enService.getConfig().apiBase}/chat/simulate-from-text`, body).pipe(
       tap((res: any) => {
         if (res?.fields) {

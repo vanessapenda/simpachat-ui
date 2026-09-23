@@ -2,7 +2,7 @@ export interface FeedbackData {
   session_id: string;
   rating: number;
   comment: string;
-  simulation_type: 'cameroon' | 'external' | 'unknown';
+  simulation_type: 'cameroon' | 'external' | 'first_necessity' | 'unknown';
   vehicle_info: {
     marque?: string;
     modele?: string;
