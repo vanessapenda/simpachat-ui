@@ -26,8 +26,17 @@ export class ConversationService {
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(list));
   }
 
+  // Historique limite a 1 mois (demande explicite de Vanessa) : les conversations plus
+  // anciennes ne sont plus proposees dans le panneau Historique. Elles restent en localStorage
+  // (pas de suppression active, juste filtrees a la lecture) -- un nettoyage explicite reste
+  // possible plus tard si besoin, sans perte de donnees silencieuse d'ici la.
+  private static readonly HISTORY_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
   list(): Conversation[] {
-    return this.loadAll().sort((a, b) => b.updatedAt - a.updatedAt);
+    const cutoff = Date.now() - ConversationService.HISTORY_MAX_AGE_MS;
+    return this.loadAll()
+      .filter(s => s.updatedAt >= cutoff)
+      .sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
   get(id: string): Conversation | undefined {

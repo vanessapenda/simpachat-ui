@@ -81,14 +81,28 @@ ngAfterViewChecked(): void {
     } catch {}
   }
 
-  // Simulations disponibles aujourd'hui, proposées juste après le message de bienvenue
-  private readonly QUICK_REPLIES: QuickReplyOption[] = [
-    { label: "Véhicule d'occasion", text: "Je veux simuler un véhicule d'occasion." },
-    { label: 'Véhicule neuf', text: 'Je veux simuler mon véhicule neuf.' },
-    { label: 'Produits de 1ère nécessité', text: 'Je veux simuler des produits de première nécessité.' },
-    { label: 'Boissons', text: 'Je veux simuler des boissons.' },
-    { label: 'Produits pharmaceutiques', text: 'Je veux simuler des produits pharmaceutiques.' },
-    { label: 'Autres produits', text: 'Je veux simuler un autre produit.' }
+  // Menu à 2 niveaux (demande de Vanessa le 21/10/2026, pour coller à l'interface du
+  // simulateur graphique : onglet "Type d'opérations" d'abord, puis "Type de produits" une
+  // fois l'opération choisie -- cf. guce-simulator step.html). Niveau 1 : les 4 opérations,
+  // affichées en grandes cartes colorées (kind: 'operation-cards', template, demande du
+  // 22/10/2026 pour reprendre le style des cartes de la page d'accueil SIMPA) -- 4 boutons
+  // écrits en dur dans le template, pas de liste ici (jamais que ces 4, pas besoin de *ngFor).
+  // Niveau 2 (import uniquement pour l'instant) : les catégories de produits existantes.
+  // Export n'a qu'une seule catégorie (36 produits, cf. _EXPORT_PRODUCTS côté backend) donc le
+  // bouton "Exportation" déclenche directement cette liste, sans sous-menu intermédiaire.
+  // Transit Export/Import : backend pas encore implémenté (cf. discussion du 21/10/2026) --
+  // boutons affichés pour respecter la symétrie avec les 4 opérations officielles, mais
+  // répondent pour l'instant par un message "bientôt disponible" plutôt que de planter.
+
+  // Emojis ajoutes devant chaque libelle (demande explicite de Vanessa : rendre les boutons plus
+  // vivants) -- uniquement decoratif, le texte envoye au backend (text:) reste inchange.
+  private readonly IMPORT_PRODUCT_TYPES: QuickReplyOption[] = [
+    { label: "🚗 Véhicule d'occasion", text: "Je veux simuler un véhicule d'occasion." },
+    { label: '🚙 Véhicule neuf', text: 'Je veux simuler mon véhicule neuf.' },
+    { label: '📦 Produits de 1ère nécessité', text: 'Je veux simuler des produits de première nécessité.' },
+    { label: '🍾 Boissons', text: 'Je veux simuler des boissons.' },
+    { label: '💊 Produits pharmaceutiques', text: 'Je veux simuler des produits pharmaceutiques.' },
+    { label: '🛒 Autres produits', text: 'Je veux simuler un autre produit.' }
   ];
 
   // Ajoute le message de bienvenue (+ les choix rapides) s'il n'y a encore aucun message
@@ -103,17 +117,48 @@ ngAfterViewChecked(): void {
       this.messages.push({
         sender: 'bot',
         timestamp: new Date(),
-        kind: 'quick-replies',
-        quickReplies: this.QUICK_REPLIES
+        kind: 'operation-cards'
       });
       this.saveMessages();
       this.sessions = this.convSvc.list();
     }
   }
 
+  // Ajoute localement un échange user/bot (pas d'appel backend) : utilisé pour la navigation
+  // du menu à 2 niveaux ci-dessus, qui n'a besoin d'aucune info côté serveur avant que
+  // l'utilisateur n'ait choisi sa catégorie finale.
+  private pushLocalExchange(userLabel: string, botText: string, quickReplies?: QuickReplyOption[]): void {
+    this.messages.push({ text: userLabel, sender: 'user', timestamp: new Date(), kind: 'text' });
+    this.messages.push({ text: botText, sender: 'bot', timestamp: new Date(), kind: 'text' });
+    if (quickReplies) {
+      this.messages.push({ sender: 'bot', timestamp: new Date(), kind: 'quick-replies', quickReplies });
+    }
+    this.saveMessages();
+    this.shouldScroll = true;
+  }
+
   // Envoie le texte associé à un choix rapide, via le même chemin qu'un message tapé au clavier
+  // -- sauf les 4 sentinelles __OP_*__ du menu "Type d'opérations", interceptées ici pour rester
+  // 100% locales (jamais envoyées telles quelles au backend/LLM).
   sendQuickReply(text: string): void {
     if (this.loading) return;
+    switch (text) {
+      case '__OP_EXPORT__':
+        this.userInput = 'Je veux exporter un produit.';
+        this.sendMessage();
+        return;
+      case '__OP_IMPORT__':
+        this.pushLocalExchange('🚢 Importation', 'Quel type de produit souhaitez-vous importer ?', this.IMPORT_PRODUCT_TYPES);
+        return;
+      case '__OP_TRANSIT_EXPORT__':
+        this.userInput = 'Je veux simuler un transit export.';
+        this.sendMessage();
+        return;
+      case '__OP_TRANSIT_IMPORT__':
+        this.userInput = 'Je veux simuler un transit import.';
+        this.sendMessage();
+        return;
+    }
     this.userInput = text;
     this.sendMessage();
   }
@@ -215,6 +260,21 @@ ngAfterViewChecked(): void {
   toggleHistory(): void {
     this.showHistory = !this.showHistory;
     if (this.showHistory) this.sessions = this.convSvc.list();
+  }
+
+  // Agrandir/reduire la fenetre de chat (demande Vanessa, inspire d'un widget PeopleSpheres vu
+  // en reference). SimpaChat est embarque dans une iframe de taille fixe sur la page d'accueil
+  // de guce-simulator (#assistantContainer) -- agrandir/reduire CE composant seul ne changerait
+  // rien visuellement puisque la taille visible est imposee par l'iframe elle-meme, pas par son
+  // contenu. On previent donc la page parente par postMessage pour qu'elle agrandisse l'iframe ;
+  // see fragments/layout.html cote guce-simulator pour la reception de ce message.
+  isExpanded = false;
+
+  toggleExpand(): void {
+    this.isExpanded = !this.isExpanded;
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ simpaChatExpand: this.isExpanded }, '*');
+    }
   }
 
   startNewConversation(): void {
@@ -447,7 +507,8 @@ ngAfterViewChecked(): void {
           // que les quick-replies d'accueil.
           this.messages.push({
             sender: 'bot', timestamp: new Date(), kind: 'product-select',
-            text: res.question, productOptions: res.product_options
+            text: res.question, productOptions: res.product_options,
+            optionsStyle: res.product_options_style === 'pills' ? 'pills' : 'list'
           });
         }
         else if (res?.status === 'need_info') {
@@ -501,7 +562,8 @@ ngAfterViewChecked(): void {
           this.messages.push({
             sender: 'bot', timestamp: new Date(), kind: 'pdf-link',
             text: res.message || 'Voici le PDF de votre simulation :',
-            pdfUrl: res.pdf_url
+            pdfUrl: res.pdf_url,
+            offerLang: lang
           });
           // Si ce PDF a été généré suite à l'offre proposée après un résultat, on enchaîne
           // maintenant vers le recueil d'avis. Si c'est une demande de PDF faite plus tard,

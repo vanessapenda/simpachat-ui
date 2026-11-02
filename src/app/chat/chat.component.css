@@ -93,7 +93,7 @@
   display: inline-block;
   max-width: 100%;                 /* la largeur max est gérée par .bubble-col */
   padding: 12px 16px;
-  border-radius: 18px;
+  border-radius: 20px;
   font-size: 1em;
   line-height: 1.4;
   word-wrap: break-word;
@@ -105,13 +105,15 @@
 .bubble-user {
   background: var(--brand-orange);
   color: #fff;
-  border-bottom-right-radius: 6px;
+  border-bottom-right-radius: 8px;
 }
 
+/* Fond tres legerement bleute (coherent avec le bleu de l'en-tete) au lieu du blanc pur, pour
+   mieux differencier le robot de l'utilisateur et casser l'effet "formulaire" (demande Vanessa). */
 .bubble-bot {
-  background: #fff;
+  background: #eef3f9;
   color: #222;
-  border-bottom-left-radius: 6px;
+  border-bottom-left-radius: 8px;
 }
 
 /* Colonne bulle + pied : garde le pied (horodatage) sous la bulle, aligné du même côté */
@@ -137,9 +139,11 @@
   display:flex; flex-wrap:wrap; gap:8px;
   margin: 0 0 12px 42px; /* aligné sous la bulle bot : avatar (36px) + gap (6px) */
 }
+/* Bordure bien visible (bleu corporate), pour que les boutons ne se fondent plus dans le decor
+   gris du fond du chat (demande Vanessa). */
 .quick-reply-btn{
   background:#fff !important;
-  border:1.3px solid #d7dee6 !important;
+  border:1.5px solid rgba(12,56,102,.35) !important;
   color: var(--blue) !important;
   font-size:.88em !important;
   font-weight:600 !important;
@@ -155,6 +159,47 @@
   color: var(--orange) !important;
 }
 .quick-reply-btn:disabled{ opacity:.6; cursor:not-allowed; }
+
+/* ===== Type d'opérations (4 grandes cartes colorées, style page d'accueil SIMPA) ===== */
+.operation-cards{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  gap:16px;
+  margin: 0 0 12px 42px; /* aligné sous la bulle bot, comme .quick-replies */
+  max-width: 420px;
+}
+.op-card{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  padding:28px 16px;
+  border:none;
+  border-radius:18px;
+  cursor:pointer;
+  font-size:1em;
+  font-weight:600;
+  color:#1f2d3d;
+  transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+}
+.op-card:hover:not(:disabled){
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,.08);
+}
+.op-card:disabled{ opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
+/* Icônes = images fournies par Vanessa (déjà un badge coloré dessiné dedans), pas de fond/
+   cercle ajouté en CSS par-dessus -- juste la taille d'affichage. */
+.op-card-icon{
+  width:72px;
+  height:72px;
+  object-fit:contain;
+}
+.op-card-export{ background:#e4f1fc; }
+.op-card-import{ background:#fdece0; }
+.op-card-transit-export{ background:#eef1f4; }
+.op-card-transit-import{ background:#e2f7ec; }
+.op-card-transit-import .op-card-icon{ color:#2fa968; }
 
 /* ===== Liste à cocher (valeurs encore attendues) ===== */
 .bubble .checklist{
@@ -432,7 +477,9 @@ input[type="file"].d-none{ display:none !important; }
 }
 .pdf-offer-no:hover{ background:#f1f3f5; }
 
-/* Liste des produits de première nécessité (défilable, dans la bulle) */
+/* Liste de produits à choisir (défilable, dans la bulle) -- comportement d'origine restauré
+   le 21/10/2026 : seules les 6 catégories export (optionsStyle === 'pills') sortent de la
+   bulle en pilules, cf. .quick-replies. */
 .product-select-list{
   display: flex;
   flex-direction: column;
@@ -655,27 +702,29 @@ input[type="file"].d-none{ display:none !important; }
 }
 .history-btn:hover { background: rgba(255,255,255,0.24) !important; }
 
-.loading-spinner {
+/* Indicateur de frappe : petit anneau qui tourne + libelle, repris d'un widget de reference
+   (PeopleSpheres/Lougo) a la demande de Vanessa, a la place des 3 points rebondissants. Aligne
+   comme une bulle bot classique (avatar + contenu a droite). */
+.typing-indicator {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin: 12px 0;
+  gap: 8px;
+  padding: 10px 14px;
 }
-
-.loading-spinner .dot {
-  width: 10px;
-  height: 10px;
+.typing-ring {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
   border-radius: 50%;
-  background: var(--brand-orange);
-  animation: bounce 1.2s infinite ease-in-out;
+  border: 2px solid rgba(12,56,102,.15);
+  border-top-color: var(--brand-orange);
+  animation: typing-ring-spin .8s linear infinite;
 }
-
-.loading-spinner .dot:nth-child(1) { animation-delay: 0s; }
-.loading-spinner .dot:nth-child(2) { animation-delay: 0.2s; }
-.loading-spinner .dot:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes bounce {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
+.typing-label {
+  font-size: .88em;
+  color: #6b7685;
+  font-style: italic;
+}
+@keyframes typing-ring-spin {
+  to { transform: rotate(360deg); }
 }

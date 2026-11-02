@@ -27,7 +27,7 @@ export interface Message {
   timestamp: Date;
 
   // type de rendu
-  kind?: 'text' | 'table' | 'feedback' | 'quick-replies' | 'pdf-link' | 'pdf-offer' | 'product-select';
+  kind?: 'text' | 'table' | 'feedback' | 'quick-replies' | 'operation-cards' | 'pdf-link' | 'pdf-offer' | 'product-select';
 
   // contenu (optionnels selon kind)
   text?: string;
@@ -36,10 +36,15 @@ export interface Message {
   quickReplies?: QuickReplyOption[];
   // URL de téléchargement du PDF de résultat (kind === 'pdf-link')
   pdfUrl?: string;
-  // langue à utiliser pour les boutons Oui/Non (kind === 'pdf-offer')
+  // langue à utiliser pour les boutons Oui/Non (kind === 'pdf-offer') ou le bouton de
+  // téléchargement (kind === 'pdf-link')
   offerLang?: string;
   // liste des produits de 1ère nécessité proposés (kind === 'product-select')
   productOptions?: ProductOption[];
+  // 'pills' pour les 6 catégories export (boutons hors bulle, comme les menus de navigation) ;
+  // 'list' (défaut) pour une vraie liste de produits (boissons, 1ère nécessité, produits d'une
+  // catégorie export...) : liste verticale défilable dans la bulle, clic direct.
+  optionsStyle?: 'pills' | 'list';
 
   // liste à puces (optionnelle) affichée sous le texte : les caractéristiques encore
   // demandées à l'utilisateur (ex: marque, modèle, pays de provenance, ...)

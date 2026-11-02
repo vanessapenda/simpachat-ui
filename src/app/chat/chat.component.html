@@ -26,6 +26,14 @@
         >
           <i class="bi bi-clock-history"></i>
         </button>
+        <button
+          class="history-btn"
+          (click)="toggleExpand()"
+          [title]="isExpanded ? 'Réduire' : 'Agrandir'"
+          [attr.aria-label]="isExpanded ? 'Réduire la fenêtre de chat' : 'Agrandir la fenêtre de chat'"
+        >
+          <i class="bi" [ngClass]="isExpanded ? 'bi-arrows-angle-contract' : 'bi-arrows-angle-expand'"></i>
+        </button>
       </div>
     </div>
 
@@ -132,23 +140,48 @@
 
     <!-- Corps du chat -->
     <div #chatBody class="card-body chat-body">
-      <div *ngFor="let msg of messages">
-        <!-- Choix rapides (simulations disponibles) -->
+      <div *ngFor="let msg of messages; let last = last">
+        <!-- Choix rapides (simulations disponibles) -- désactivés dès qu'ils ne sont plus le
+             dernier message (!last) : demande de Vanessa le 21/10/2026, pour empêcher de
+             recliquer un choix déjà fait/dépassé (ex: changer de type d'opération en pleine
+             simulation) et de corrompre l'état de la session. -->
         <div class="quick-replies" *ngIf="msg.kind === 'quick-replies'">
           <button
             *ngFor="let opt of msg.quickReplies"
             type="button"
             class="quick-reply-btn"
-            [disabled]="loading"
+            [disabled]="loading || !last"
             (click)="sendQuickReply(opt.text)"
           >
             {{ opt.label }}
           </button>
         </div>
 
+        <!-- Type d'opérations (4 grandes cartes colorées) : reprend le style des cartes de la
+             page d'accueil SIMPA -- demande de Vanessa le 22/10/2026. Toujours ces 4 mêmes
+             options donc écrites en dur ici plutôt que data-driven. -->
+        <div class="operation-cards" *ngIf="msg.kind === 'operation-cards'">
+          <button type="button" class="op-card op-card-export" [disabled]="loading || !last" (click)="sendQuickReply('__OP_EXPORT__')">
+            <img src="assets/op-export.png" alt="" class="op-card-icon" />
+            <span>Exportation</span>
+          </button>
+          <button type="button" class="op-card op-card-import" [disabled]="loading || !last" (click)="sendQuickReply('__OP_IMPORT__')">
+            <img src="assets/op-import.png" alt="" class="op-card-icon" />
+            <span>Importation</span>
+          </button>
+          <button type="button" class="op-card op-card-transit-export" [disabled]="loading || !last" (click)="sendQuickReply('__OP_TRANSIT_EXPORT__')">
+            <img src="assets/op-transit-export.png" alt="" class="op-card-icon" />
+            <span>Transit Export</span>
+          </button>
+          <button type="button" class="op-card op-card-transit-import" [disabled]="loading || !last" (click)="sendQuickReply('__OP_TRANSIT_IMPORT__')">
+            <img src="assets/op-transit-import.png" alt="" class="op-card-icon" />
+            <span>Transit Import</span>
+          </button>
+        </div>
+
         <div
           class="message-row"
-          *ngIf="msg.kind !== 'quick-replies'"
+          *ngIf="msg.kind !== 'quick-replies' && msg.kind !== 'operation-cards'"
           [ngClass]="msg.sender === 'user' ? 'user' : 'bot'"
         >
           <!-- Avatar -->
@@ -169,12 +202,30 @@
               msg.kind === 'table' ? 'bubble-table' : '',
             ]"
           >
-            <!-- Texte simple -->
+            <!-- Texte simple (la question d'une liste de produits/catégories à choisir,
+                 kind === 'product-select', réutilise ce même rendu) -->
             <div
-              *ngIf="(msg.kind || 'text') === 'text'"
+              *ngIf="(msg.kind || 'text') === 'text' || msg.kind === 'product-select'"
               style="white-space: pre-line"
             >
               {{ msg.text }}
+            </div>
+
+            <!-- Liste de produits à choisir (boissons, 1ère nécessité, pharma, produits d'une
+                 catégorie export...) : liste verticale défilable dans la bulle, clic direct sur
+                 un produit -- comportement d'origine, demande explicite de Vanessa le
+                 21/10/2026 de le restaurer (seules les 6 catégories export, optionsStyle ===
+                 'pills', s'affichent différemment : en pilules hors de la bulle, cf. plus bas). -->
+            <div *ngIf="msg.kind === 'product-select' && msg.optionsStyle !== 'pills'" class="product-select-list">
+              <button
+                *ngFor="let p of msg.productOptions"
+                type="button"
+                class="product-select-btn"
+                [disabled]="loading || !last"
+                (click)="sendQuickReply(p.label)"
+              >
+                {{ p.label }}
+              </button>
             </div>
 
             <!-- Liste à cocher des valeurs encore attendues (ex: FOB / Fret / Assurance) -->
@@ -204,24 +255,8 @@
                 target="_blank"
                 rel="noopener"
               >
-                <i class="bi bi-file-earmark-pdf"></i> Télécharger le PDF
+                <i class="bi bi-file-earmark-pdf"></i> {{ msg.offerLang === 'en' ? 'Download the PDF' : 'Télécharger le PDF' }}
               </a>
-            </div>
-
-            <!-- Liste des produits de première nécessité à choisir -->
-            <div *ngIf="msg.kind === 'product-select'" class="product-select">
-              <div style="white-space: pre-line">{{ msg.text }}</div>
-              <div class="product-select-list">
-                <button
-                  *ngFor="let p of msg.productOptions"
-                  type="button"
-                  class="product-select-btn"
-                  [disabled]="loading"
-                  (click)="sendQuickReply(p.label)"
-                >
-                  {{ p.label }}
-                </button>
-              </div>
             </div>
 
             <!-- Offre facultative de PDF, affichée juste après un résultat -->
@@ -299,13 +334,31 @@
           </div>
           </div>
         </div>
+
+        <!-- Catégories export (6 boutons) : pilules hors de la bulle, comme le menu "type
+             d'opérations"/"type de produit" import -- demande explicite de Vanessa le
+             21/10/2026. Seule différence avec les autres product-select : optionsStyle==='pills'. -->
+        <div class="quick-replies" *ngIf="msg.kind === 'product-select' && msg.optionsStyle === 'pills'">
+          <button
+            *ngFor="let p of msg.productOptions"
+            type="button"
+            class="quick-reply-btn"
+            [disabled]="loading || !last"
+            (click)="sendQuickReply(p.label)"
+          >
+            {{ p.label }}
+          </button>
+        </div>
       </div>
 
-      <!-- Spinner -->
-      <div *ngIf="loading" class="loading-spinner">
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
+      <!-- Indicateur de frappe : anneau qui tourne + "En cours de saisie...", repris d'un widget
+           de reference (PeopleSpheres/Lougo) a la demande de Vanessa, a la place des 3 points. -->
+      <div class="message-row bot" *ngIf="loading">
+        <img src="assets/bot-avatar.svg" alt="bot" class="avatar avatar-bot" />
+        <div class="typing-indicator">
+          <span class="typing-ring"></span>
+          <span class="typing-label">En cours de saisie...</span>
+        </div>
       </div>
     </div>
 
